@@ -4,7 +4,7 @@
 To simulate an automated brute-force attack against an enterprise asset over Remote Desktop Protocol (RDP) and verify SIEM alert correlation rules.
 
 ## Attack Vector
-- **Attacker Node:** Kali Linux (`<YOUR_KALI_IP>`)
+- **Attacker Node:** Kali Linux (`192.168.10.20`)
 - **Target Node:** Windows 10 Endpoint (`192.168.10.10`)
 - **Tooling Used:** Hydra (FreeRDP module)
 
@@ -16,6 +16,6 @@ An automated brute-force wave was executed. The SIEM (Wazuh) successfully ingest
 ### The Correlation Signature
 While individual logon failures were logged, Wazuh's correlation engine successfully triggered **Rule 60122: Multiple Windows Logon Failure** once the velocity threshold was breached.
 
-- **Identified Attacker IP:** `<YOUR_KALI_IP>`
+- **Identified Attacker IP:** `192.168.10.20`
 - **Logon Type:** 10 (RemoteInteractive / RDP)
 - **SIEM Action:** Escalated to high-priority security alert.
