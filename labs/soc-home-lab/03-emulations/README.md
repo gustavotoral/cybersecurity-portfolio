@@ -1,21 +1,33 @@
 # Phase 3: Attack Emulation & Detection Triage
 
-## Objective
-To simulate an automated brute-force attack against an enterprise asset over Remote Desktop Protocol (RDP) and verify SIEM alert correlation rules.
+## 1. Objective (What & Why)
+The objective of this phase was to simulate a real-world adversarial attack vector and verify if our centralized monitoring system could correlate and alert on the malicious activity. I executed an automated Remote Desktop Protocol (RDP) brute-force attack from the Kali Linux node against the Windows workstation to test the SIEM’s ability to detect brute-force thresholds.
 
-## Attack Vector
-- **Attacker Node:** Kali Linux (`192.168.10.20`)
-- **Target Node:** Windows 10 Endpoint (`192.168.10.10`)
-- **Tooling Used:** Hydra (FreeRDP module)
+---
 
-## Detection & Triage Workflow
-During testing, initial connection failures were isolated to a disabled OS-level listening port (3389). Following targeted troubleshooting and system remediation, the port was successfully opened to a listening state.
+## 2. Environment Setup & Troubleshooting (The Configuration)
+* **Adversarial Tooling:** Hydra (FreeRDP module) configured to blast a list of common credentials.
+* **Attacker Node (Kali Linux):** `192.168.10.20`
+* **Target Node (Windows Endpoint):** `192.168.10.10`
 
-An automated brute-force wave was executed. The SIEM (Wazuh) successfully ingested raw Windows Security logs (**Event ID 4625: An account failed to log on**).
+### Port Remediation
+During initial testing, connection failures occurred because RDP port `3389` was disabled at the OS level on the target. I performed targeted system remediation to open the port and verify its active listening state before proceeding with the attack.
 
-### The Correlation Signature
-While individual logon failures were logged, Wazuh's correlation engine successfully triggered **Rule 60122: Multiple Windows Logon Failure** once the velocity threshold was breached.
+---
 
-- **Identified Attacker IP:** `192.168.10.20`
-- **Logon Type:** 10 (RemoteInteractive / RDP)
-- **SIEM Action:** Escalated to high-priority security alert.
+## 3. Verification & Triage (The Proof)
+Once the brute-force wave was executed, I verified the entire attack-to-detection pipeline inside the SIEM:
+
+### Host-Level Log Generation
+The Windows target successfully generated high-velocity security events tracking the failed attempts:
+* **Event ID 4625:** An account failed to log on.
+* **Logon Type 10:** RemoteInteractive (RDP authentication mechanism).
+
+### SIEM Correlation & Alerting
+Wazuh successfully ingested the raw logs. Once the velocity threshold was breached, the correlation engine upgraded the noise into a high-priority security alert:
+* **Triggered Signature:** Rule 60122 (Multiple Windows Logon Failure).
+* **Identified Source IP:** `192.168.10.20` (Kali Linux).
+
+![Hydra Brute Force Attack](../assets/kali_hydra_rdp_brute_force_attack.png)
+
+![Wazuh Alert Brute Force](../assets/wazuh_alert_brute_force.png)
