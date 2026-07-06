@@ -1,31 +1,25 @@
-# Phase 1: Infrastructure Deployment & Network Topography
+# Phase 1: Infrastructure Deployment
 
-## Objective
-To architect and configure an isolated, multi-node virtualized staging environment to simulate an enterprise local area network (LAN) for security monitoring and telemetry ingestion.
+## 1. Objective (What & Why)
+I built an isolated, multi-node virtual lab network using VirtualBox to safely simulate an enterprise network without exposing the environment to the public internet. This ensures malware or attack simulations stay contained.
 
-## Network Topology
-The environment leverages a strict host-only network configuration to ensure zero exposure to the public internet while allowing seamless lateral communication and log aggregation between endpoints.
-
-
-
-### Subnet Allocation
-- **Network Mode:** VirtualBox Host-Only Adapter
-- **Subnet Range:** `192.168.10.0/24`
-- **Gateway/DHCP:** Managed via virtual hypervisor DHCP engine
-
-### Node Registry
-| Node Name | Operating System | Private IP Address | Primary Function |
-| :--- | :--- | :--- | :--- |
-| **Wazuh-Server** | Ubuntu Server 22.04 LTS | `192.168.10.x` | SIEM Indexer, Manager, & Dashboard |
-| **Windows-Endpoint** | Windows 10 Enterprise | `192.168.10.10` | Target Node / Telemetry Source |
-| **Kali-Attacker** | Kali Linux (Rolling) | `192.168.10.y` | Threat Emulation & Penetration Testing |
+* **Subnet Range:** `192.168.10.0/24`
+* **Network Mode:** VirtualBox Host-Only Adapter
 
 ---
 
-## Connectivity & Routing Verification
+## 2. Environment Setup (The Configuration)
+The lab consists of two primary virtual machines deployed within the isolated subnet:
+1. **Windows 11 Enterprise:** Serving as the target workstation for log collection.
+2. **Kali Linux:** Serving as the controlled adversarial platform to launch simulations.
 
-### 1. Layer 3 ICMP Verification
-To validate that the virtual switch is properly handling communication across the `192.168.10.0/24` plane, bidirectional ICMP echo requests were completed. 
-```cmd
-# Executed from Windows-Endpoint to verify path to Wazuh-Server
-ping 192.168.10.x
+---
+
+## 3. Verification (The Proof)
+To confirm the environment was properly isolated and both endpoints had line-of-sight to each other, I verified the IP configurations:
+
+### Hypervisor Network Bounds
+![VirtualBox Network Settings](../assets/virtualbox_manager_settings.png)
+
+### Kali Linux Subnet Verification
+![Kali Linux IP Address Verification](../assets/kali_linux_ip_address_verification.png)
