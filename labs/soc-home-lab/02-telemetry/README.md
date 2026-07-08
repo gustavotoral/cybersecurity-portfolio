@@ -27,4 +27,4 @@ I verified that Sysmon was successfully hooks-installed and generating granular 
 ![Sysmon Event 1 Process Creation](../assets/sysmon_event_1_process_creation.png)
 
 * **Event ID 3 (Network Connection):** Confirming network sockets opened by processes are being logged.
-![Sysmon Event 3 Network Connection](../assets/sysmon_event_3_network_connection.png)
+![Sysmon Event 3 Network Connection](../assets/sysmon_event_3_network_connection_detected.png)
