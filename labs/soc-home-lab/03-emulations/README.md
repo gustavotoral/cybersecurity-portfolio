@@ -30,4 +30,4 @@ Wazuh successfully ingested the raw logs. Once the velocity threshold was breach
 
 ![Hydra Brute Force Attack](../assets/kali_hydra_rdp_brute_force_attack.png)
 
-![Wazuh Alert Brute Force](../assets/wazuh_alert_brute_force.png)
+![Wazuh Alert Brute Force](../assets/wazuh_alert_brute_force_logon_failures.png)
