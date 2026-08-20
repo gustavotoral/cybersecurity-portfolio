@@ -1,48 +1,56 @@
-# cybersecurity-portfolio
-Home lab environments and documentation focused on Security Operations (SOC), SIEM telemetry, log analysis, and enterprise defense.
 # Cybersecurity Engineering & Operations Portfolio
 
-Welcome to my cybersecurity portfolio. This repository documents my hands-on experience in security operations, threat detection engineering, network security, and enterprise defense configurations. 
-
-The projects documented here demonstrate my ability to analyze security telemetry, configure enterprise-grade monitoring tools, and apply defensive mitigation strategies.
+Welcome to my cybersecurity portfolio. This repository documents hands-on security operations, endpoint detection engineering, network packet analysis, and enterprise defense telemetry. Every project is built to demonstrate practical investigation workflows, log analysis, and root-cause determination.
 
 ---
 
-## 🛠️ Technical Certifications & Education
+## 🛠️ Certifications & Education
+
 * **CompTIA Security+**
 * **CompTIA Network+**
 * **CompTIA A+**
 * **AWS Certified Cloud Practitioner**
-* **Cloud and Network Security Administration** — *The Academy Miami*
+* **Cloud and Network Security Administration** — The Academy Miami
 
 ---
 
-## 💻 Hands-On Security Labs
+## 💻 Completed Security Projects
 
-### 🛡️ [Security Operations & SIEM Telemetry](./SOC-SIEM-Labs/)
-Focused on log ingestion, centralizing visibility, and monitoring active infrastructure for anomalous activity.
-* **[Active Directory & Group Policy Lab](./SOC-SIEM-Labs/Active-Directory/)**
-  * *Description:* Built a Windows Server 2022 environment to manage enterprise identities, configure Group Policy Objects (GPOs), and generate intentional baseline telemetry.
-  * *Skills:* Identity & Access Management (IAM), Active Directory, Windows Event Auditing.
-* **[SIEM Log Analysis & Monitoring](./SOC-SIEM-Labs/SIEM-Log-Analysis/)**
-  * *Description:* Configured a SIEM pipeline to ingest endpoint logs, parse network traffic data, and build defensive detection dashboards.
-  * *Skills:* SIEM Management, Sysmon Data Ingestion, Log Parsing, Dashboard Engineering.
+### 🛡️ [SOC Home Lab: Wazuh SIEM & Endpoint Telemetry Ingestion](./labs/soc-home-lab/)
+* **Objective:** Deploy an isolated virtual security operations pipeline to collect, parse, and analyze endpoint and network telemetry for active threat detection.
+* **Technical Highlights:**
+  * Configured **Wazuh SIEM Manager** to ingest host-based telemetry across Windows and Linux environments.
+  * Deployed **Sysmon** with modular XML configurations to enrich process creation (Event ID 1) and network connection (Event ID 3) logging.
+  * Verified alert pipelines against offensive attack simulations generated via Kali Linux.
+* **Skills Applied:** SIEM Architecture, Sysmon Ingestion, Windows Event Log Auditing, Log Correlation, MITRE ATT&CK Mapping.
 
-### 🌐 [Network Security Engineering](./Network-Security/)
-Focused on verifying protocol integrity, capturing live infrastructure traffic, and perimeter defense controls.
-* **[Wireshark Traffic Analysis](./Network-Security/)**
-  * *Description:* Captured and parsed real-time network traffic payloads using Wireshark to investigate protocol headers and identify anomalous data streams.
-  * *Skills:* Packet Analysis, Protocol Verification (TCP/IP, DNS, HTTP), Network Troubleshooting.
+### 🌐 Active Directory Identity & Policy Baseline
+* **Objective:** Establish enterprise identity baselines and audit policies in Windows Server 2022 to generate actionable domain telemetry.
+* **Technical Highlights:**
+  * Configured Group Policy Objects (GPOs) to enforce advanced audit policies for logon events, privilege usage, and account management.
+  * Centralized authentication baselines to detect anomalous access patterns and lateral movement indicators.
+* **Skills Applied:** Active Directory Administration, Group Policy (GPO), IAM Auditing, Windows Security Telemetry.
+
+### 🔍 Wireshark Network Protocol & Traffic Analysis
+* **Objective:** Inspect raw packet captures to diagnose protocol anomalies, baseline normal network communication, and identify unauthorized data streams.
+* **Technical Highlights:**
+  * Analyzed live and captured network streams across TCP/IP, DNS, and HTTP traffic layers.
+  * Utilized display filters to trace transmission handshakes and flag non-standard payload patterns.
+* **Skills Applied:** Packet Analysis, Protocol Verification, Network Troubleshooting, Wireshark.
 
 ---
 
-## 🧰 Core Skills & Tools Reference
-| Category | Technologies & Frameworks |
+## 🧰 Technical Skills Matrix
+
+| Domain | Tools & Technologies |
 | :--- | :--- |
-| **SIEM / Logging** | Microsoft Sentinel / Log Analytics, Elastic, Sysmon, Windows Event Viewer |
-| **Network Security** | Wireshark, Packet Analysis, Network Baselines, Protocols |
-| **System Admin** | Windows Server 2022, Active Directory, Group Policy (GPO) |
-| **Cloud Security** | Amazon Web Services (AWS) Core Infrastructure |
+| **SIEM & Log Analysis** | Wazuh, Sysmon, Windows Event Viewer, Log Parsing |
+| **Network & Protocol Defense** | Wireshark, TCP/IP, DNS, Protocol Header Analysis |
+| **System Administration** | Windows Server, Active Directory, Group Policy (GPO), Linux |
+| **Cloud Fundamentals** | Amazon Web Services (AWS) Core Infrastructure |
 
 ---
-📬 **Let's Connect:** [Your LinkedIn Profile URL Here] | [Your Email Here]
+
+## 📬 Contact & Profiles
+* **LinkedIn:** [LinkedIn Profile URL]
+* **GitHub Repositories:** [Profile Overview URL]
