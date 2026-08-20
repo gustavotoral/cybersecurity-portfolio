@@ -1,25 +1,34 @@
-# Phase 1: Infrastructure Deployment
+# Phase 1: Virtual Infrastructure & Isolated Network Architecture
 
-## 1. Objective 
-I built an isolated, multi-VM virtual lab network using VirtualBox to safely simulate an enterprise network without exposing the environment to the public internet. This ensures malware or attack simulations stay contained.
+## 1. Architectural Objective & Threat Model
+The primary objective was to deploy a segregated, virtual security operations environment to safely conduct adversarial simulations, observe live telemetry generation, and validate SIEM alert pipelines without risking production networks or public exposure.
 
-* **Subnet Range:** `192.168.10.0/24`
-* **Network Mode:** VirtualBox Internal Network `soc-net`
-
----
-
-## 2. Environment Setup
-The lab consists of two primary virtual machines deployed within the isolated subnet:
-1. **Windows 11 Pro:** Serving as the target workstation for log collection.
-2. **Kali Linux:** Serving as the controlled adversarial platform to launch simulations.
+* **Network Containment:** Configured VirtualBox Internal Network (`soc-net`) to eliminate inadvertent outbound traffic or accidental internet routability.
+* **Subnet Architecture:** `192.168.10.0/24` non-routable private address space.
+* **Core Nodes:**
+  * **Adversarial Platform:** Kali Linux (`192.168.10.x`) — Dedicated simulation node for reconnaissance, brute-force, and persistence techniques.
+  * **Monitored Endpoint:** Windows 11 Enterprise (`192.168.10.x`) — Workstation configured for granular process, authentication, and network telemetry capture.
+  * **Detection Engine:** Wazuh SIEM Server (`192.168.10.x`) — Centralized log ingestion, correlation engine, and alert dashboard.
 
 ---
 
-## 3. Verification
-To confirm the environment was properly isolated and both endpoints had line-of-sight to each other, I verified the IP configurations:
+## 2. Infrastructure Deployment & Hypervisor Configuration
 
-### Hypervisor Network Bounds
-![VirtualBox Network Settings](../assets/virtualbox_vm_settings_internal_network.png)
+To ensure strict network segmentation, all virtual interfaces were decoupled from default NAT/Bridged adapters and assigned to an isolated internal switch.
 
-### Kali Linux Subnet Verification
-![Kali Linux IP Address Verification](../assets/kali_linux_ip_address_verification.png)
+![VirtualBox Network Configuration](../assets/virtualbox_vm_settings_internal_network.png)
+*Figure 1.1: VirtualBox hypervisor internal network boundary assignment.*
+
+![VirtualBox VM Inventory](../assets/virtualbox_manager_vm_inventory_summary.png)
+*Figure 1.2: Multi-node lab topology inventory.*
+
+---
+
+## 3. Connectivity Baseline & Network Troubleshooting
+
+### Step 1: Endpoint IP & Subnet Verification
+Verified static/DHCP assignments across both hosts to ensure mutual Layer 3 visibility on `192.168.10.0/24`.
+
+* **Kali Linux:**
+  ```bash
+  ip a show eth0
