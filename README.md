@@ -52,5 +52,5 @@ Welcome to my cybersecurity portfolio. This repository documents hands-on securi
 ---
 
 ## 📬 Contact & Profiles
-* **LinkedIn:** [Linkedin.com/in/gustavoatoral]
+* **LinkedIn:** [Linkedin.com/in/gustavoatoral/]
 * **GitHub Repositories:** [https://github.com/gustavotoral]
