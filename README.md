@@ -57,13 +57,6 @@ Hands-on work with Windows Server, Active Directory, Group Policy, user manageme
 
 ---
 
-### Wireshark Network Analysis
-
-Hands-on analysis of network traffic to understand TCP/IP, DNS, HTTP, and basic network troubleshooting.
-
-**Skills:** Wireshark · TCP/IP · DNS · Packet Analysis · Network Troubleshooting
-
----
 
 ## 🧰 Technical Skills
 
