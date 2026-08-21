@@ -1,51 +1,76 @@
-# Phase 2: Telemetry Ingestion, Pipeline Architecture & Endpoint Monitoring
+# Phase 2: Windows Telemetry & Wazuh Log Ingestion
 
-## 1. Objective & Analytical Rationale
+## What I Built
 
-Default Windows security event auditing lacks granular visibility into process lineage, memory injection, and command-line execution arguments. The objective of this phase was to construct a high-fidelity endpoint detection pipeline on the Windows 11 workstation and centralize log ingestion into the Wazuh SIEM.
+In this phase, I configured the Windows 11 endpoint to generate detailed security telemetry and forward it to Wazuh.
 
-* **The "Why":** Without low-level telemetry, an adversary executing fileless malware or living-off-the-land binaries (`LOLBins`) blends into baseline host activity. Deploying Sysmon bridges the visibility gap between standard Windows Event logs and advanced threat hunting requirements.
-* **Pipeline Architecture:** `Windows Event Log / Sysmon` ➡️ `Wazuh Agent (OSSEC Service)` ➡️ `Encrypted Transport (Port 1514 TCP)` ➡️ `Wazuh Manager (Analysis Engine & Elasticsearch/Indexer)`.
+My goal was simple:
+
+> **Generate activity on Windows → collect the events → send them to Wazuh → verify that I could see them in the SIEM.**
+
+The basic pipeline was:
+
+```text
+Windows 11
+   ↓
+Sysmon
+   ↓
+Wazuh Agent
+   ↓
+Wazuh Manager
+   ↓
+Wazuh Dashboard
+```
+
+This gave me a way to see what was happening on the Windows endpoint from a central location.
 
 ---
 
-## 2. Telemetry Configuration & Agent Deployment
+## 1. Install and Verify Sysmon
 
-### Step 1: Sysmon Instrumentation & Filter Tuning
-Installed Microsoft Sysinternals **Sysmon64** using a tailored configuration schema to enrich critical telemetry streams while suppressing high-volume background system noise.
+Windows already generates security logs, but I wanted more detail about processes and network activity.
+
+I installed Microsoft's Sysmon to capture additional endpoint telemetry.
 
 ```powershell
-# Install and apply baseline schema
 .\Sysmon64.exe -i sysmonconfig.xml -accepteula
 ```
 
-![Sysmon Installation Verification](../assets/win11_sysmon_installation_success.png)
-*Figure 2.1: Sysmon64 service initialized and actively driver-hooked into kernel space.*
-
-Verified active operational status via PowerShell service query:
+After installation, I verified that the Sysmon service was running:
 
 ```powershell
 Get-Service -Name "Sysmon64"
 ```
 
-![Sysmon Service Running](../assets/win11_powershell_verify_sysmon64_running.png)
-*Figure 2.2: PowerShell verification confirming Sysmon64 service is in a Running state.*
+**Sysmon Installation**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_sysmon_installation_success.png)
+
+**Sysmon Service Running**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_powershell_verify_sysmon64_running.png)
+
+### What I was looking for
+
+I wanted to confirm that Windows was actually generating Sysmon events before trying to send them to Wazuh.
 
 ---
 
-### Step 2: Wazuh Agent Deployment & Channel Configuration
-Enrolled the Windows 11 endpoint to the centralized Wazuh Manager (`192.168.10.x`) and configured the local `ossec.conf` to monitor the Sysmon operational channel.
+## 2. Install and Configure the Wazuh Agent
+
+Next, I installed the Wazuh agent on the Windows endpoint and connected it to my Wazuh server.
 
 ```powershell
-# Enrolling endpoint agent to manager
 .\wazuh-agent-4.x.x.msi /q WAZUH_MANAGER="192.168.10.x" WAZUH_REGISTRATION_SERVER="192.168.10.x"
+
 Start-Service -Name "Wazuh"
 ```
 
-![Wazuh Agent Installation](../assets/win11_powershell_wazuh_agent_installation.png)
-*Figure 2.3: Silent deployment and initialization of the Wazuh endpoint agent service.*
+**Wazuh Agent Installation**
 
-Inside `ossec.conf`, the log collector block was configured to pull from the dedicated Sysmon event stream:
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_powershell_wazuh_agent_installation.png)
+
+I then configured the agent to collect events from the Sysmon operational log:
 
 ```xml
 <localfile>
@@ -54,40 +79,95 @@ Inside `ossec.conf`, the log collector block was configured to pull from the ded
 </localfile>
 ```
 
----
-
-## 3. Telemetry Verification & Log Validation
-
-### Verification A: SIEM Agent Connectivity & Registration
-Confirmed bidirectional communication and active heartbeat status from the Wazuh management server.
-
-![Wazuh Agent Count](../assets/wazuh_dashboard_active_agent_count.png)
-*Figure 2.4: Wazuh SIEM Manager confirming Windows 11 endpoint is active, registered, and ingesting telemetry.*
+The goal was to create a path from the Windows endpoint to the Wazuh server.
 
 ---
 
-### Verification B: Host-Level Telemetry Generation (Sysmon)
-Inspected `Microsoft-Windows-Sysmon/Operational` in Event Viewer to confirm core detection channels were firing properly:
+## 3. Verify the Wazuh Agent
 
-* **Event ID 1 (Process Creation):** Validated process execution capturing executable paths, parent-child process relationships (`ParentImage` ➡️ `Image`), user context, and explicit command-line flags.
+After configuring the agent, I checked the Wazuh dashboard to confirm that the Windows endpoint was registered and communicating with the Wazuh server.
 
-![Sysmon Event ID 1](../assets/sysmon_event_1_process_creation_nslookup.png)
-*Figure 2.5: Sysmon Event ID 1 verifying granular command-line arguments and parent process tracking.*
+**Active Wazuh Agent**
 
-* **Event ID 3 (Network Connection):** Validated socket-level telemetry capturing source/destination IP addresses, ports, protocol states, and the initiating process binary.
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_dashboard_active_agent_count.png)
 
-![Sysmon Event ID 3](../assets/sysmon_event_3_network_connection_detected.png)
-*Figure 2.6: Sysmon Event ID 3 mapping process binaries to outbound Layer 4 network connections.*
+This confirmed that the agent was connected.
 
 ---
 
-## 4. Pipeline Verification Summary
+## 4. Generate and Verify Windows Telemetry
 
-| Ingestion Channel | Event Source | Diagnostic Value | Status |
-| :--- | :--- | :--- | :--- |
-| **Process Tracking** | Sysmon Event ID 1 | Identifies malicious parentage, LOLBins, and obfuscated CLI flags | `[VERIFIED]` |
-| **Network Sockets** | Sysmon Event ID 3 | Detects C2 beacons, reverse shells, and unauthorized port binding | `[VERIFIED]` |
-| **Security Auditing** | `Security.evtx` | Tracks authentication attempts, privilege escalation, and log tampering | `[VERIFIED]` |
-| **Central Transport** | Wazuh Agent (TCP 1514) | Ensures real-time, encrypted delivery to SIEM correlation rules | `[OPERATIONAL]` |
+Once the pipeline was working, I generated activity on the Windows endpoint and checked whether Sysmon recorded it.
 
-**Key Takeaway:** An effective detection strategy relies on layered, high-context telemetry. By combining standard Windows Security logs with Sysmon and forwarding the data via the Wazuh agent, analysts gain the granular artifacts necessary to detect process injection, persistence mechanisms, and lateral movement.
+### Process Creation — Sysmon Event ID 1
+
+I ran commands on the Windows machine and verified that Sysmon recorded the process creation.
+
+For example, I used `nslookup` and checked the resulting event.
+
+The event showed information such as:
+
+* Process name
+* Process path
+* Parent process
+* User
+* Command-line arguments
+
+**Sysmon Event ID 1**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/sysmon_event_1_process_creation_nslookup.png)
+
+This helped me understand what information an analyst can use when investigating process activity.
+
+---
+
+### Network Connections — Sysmon Event ID 3
+
+I also verified that Sysmon was recording network connections.
+
+The event included information such as:
+
+* Source and destination IP addresses
+* Destination port
+* Protocol
+* Process responsible for the connection
+
+**Sysmon Event ID 3**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/sysmon_event_3_network_connection_detected.png)
+
+This gave me visibility into which processes were creating network connections.
+
+---
+
+## 5. Verify the Full Pipeline
+
+At this point, I had verified each part of the telemetry pipeline:
+
+| Stage           | What I Verified               | Status   |
+| --------------- | ----------------------------- | -------- |
+| Windows         | Endpoint generating activity  | Verified |
+| Sysmon          | Security events being created | Verified |
+| Wazuh Agent     | Agent connected to manager    | Verified |
+| Wazuh Manager   | Events being received         | Verified |
+| Wazuh Dashboard | Events available for analysis | Verified |
+
+The important part was not just installing each tool. I wanted to verify that **an action on the Windows endpoint resulted in an event that could be investigated from Wazuh.**
+
+---
+
+## What I Learned
+
+This phase helped me understand the basic flow of endpoint telemetry.
+
+Before building this lab, I mostly thought of a SIEM as a place where alerts appear. This helped me understand what happens before the alert exists:
+
+**User/Process Activity → Windows Event → Sysmon → Wazuh Agent → Wazuh Manager → Analyst**
+
+I also learned that troubleshooting telemetry requires checking each part of the pipeline instead of assuming the SIEM is the problem.
+
+---
+
+## Next Phase
+
+With the telemetry pipeline working, I moved to the next phase: generating security events from the Kali Linux machine and investigating how those events appeared in Wazuh.
