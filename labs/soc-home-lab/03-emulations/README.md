@@ -1,107 +1,224 @@
-# Phase 3: Adversary Emulation, Detection Engineering & SOC Triage
+# Phase 3: Adversary Simulation & Alert Investigation
 
-## 1. Operational Objective & Threat Rationale
+## What I Built
 
-The objective of this phase was to simulate an external brute-force credential attack against exposed endpoint infrastructure, map the adversary's techniques to the **MITRE ATT&CK Framework**, and validate that the detection pipeline triggers high-fidelity alerts under high-velocity authentication stress.
+In this phase, I used Kali Linux to simulate attacks against my Windows 11 endpoint and then investigated the resulting security events in Wazuh.
 
-* **MITRE ATT&CK Mapping:** [T1110.001 - Brute Force: Password Guessing](https://attack.mitre.org/techniques/T1110/001/)
-* **The "Why":** Exposed administrative interfaces (such as RDP on port 3389) represent one of the most common initial access vectors for ransomware groups. A SOC analyst must be able to differentiate between single misconfiguration logon errors (benign) and distributed, automated credential spray/brute-force patterns (malicious).
+I wanted to answer a simple question:
+
+> **If an attacker tries to break into my Windows machine, what evidence will they leave behind, and will Wazuh detect it?**
+
+I tested two scenarios:
+
+1. RDP brute-force attempts
+2. Windows Security event log clearing
 
 ---
 
-## 2. Target Configuration & Port Remediation
+## 1. Prepare the Windows Endpoint
 
-### The Bottleneck: RDP Service Unreachable
-During initial reconnaissance with Nmap from Kali Linux, port `3389/tcp` was reported as `closed` or `filtered`, causing initial connection drops.
+I first checked whether Remote Desktop was accessible from the Kali Linux machine.
+
+From Kali, I scanned TCP port 3389:
 
 ```bash
-# Reconnaissance scan from Kali Linux
 nmap -p 3389 192.168.10.10
 ```
 
-![Nmap Port 3389 Scan](../assets/kali_nmap_scan_rdp_port_3389.png)
-*Figure 3.1: Nmap scan showing RDP port 3389 not actively accepting connections.*
+The first scan showed that port 3389 was not accepting connections.
 
-### System Remediation & Socket Validation
-To establish the attack surface on the Windows 11 endpoint without disabling system defenses globally, RDP was surgically enabled and confirmed via PowerShell:
+**Nmap Scan**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_nmap_scan_rdp_port_3389.png)
+
+### Troubleshooting
+
+I enabled Remote Desktop on the Windows test machine and then verified that TCP 3389 was listening:
 
 ```powershell
-# Enable Remote Desktop via Registry
 Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
 
-# Verify TCP 3389 is in a LISTENING state
 Get-NetTCPConnection -LocalPort 3389 | Select-Object LocalAddress, LocalPort, State
 ```
 
-![PowerShell RDP Listening](../assets/win11_powershell_verify_rdp_listening.png)
-*Figure 3.2: PowerShell output validating TCP 3389 is in an active LISTENING state.*
+**RDP Listening**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_powershell_verify_rdp_listening.png)
+
+This confirmed that the endpoint was ready for the test.
 
 ---
 
-## 3. Adversary Emulation: Automated RDP Brute Force
+# 2. Simulate an RDP Brute-Force Attack
 
-With the service established, an automated dictionary attack was launched from the Kali adversary platform targeting the local analyst account.
+I used Hydra from Kali to generate repeated RDP login attempts against the Windows endpoint.
 
 ```bash
-# Executing RDP brute-force attack via Hydra
 hydra -l soc_analyst -P /usr/share/wordlists/rockyou.txt rdp://192.168.10.10 -V -t 4
 ```
 
-![Hydra Brute Force Attack](../assets/kali_hydra_rdp_brute_force_attack.png)
-*Figure 3.3: Hydra executing rapid-fire credential attempts against the Windows 11 endpoint.*
+**Hydra Brute-Force Attempt**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_hydra_rdp_brute_force_attack.png)
+
+The goal was not to gain access. I wanted to generate the same type of failed authentication activity that a SOC analyst might investigate.
 
 ---
 
-## 4. Telemetry Correlation & SOC Analyst Triage
+# 3. Investigate the Windows Security Events
 
-### Step 1: Endpoint Artifact Analysis (`Security.evtx`)
-The high-velocity authentication failures generated explicit telemetry inside the local Windows Security event log.
+The failed login attempts generated Windows Security Event ID **4625**.
 
-* **Event ID 4625:** An account failed to log on.
-* **Logon Type 10 (`RemoteInteractive`):** Confirmed the authentication vector was initiated remotely via Remote Desktop / Terminal Services rather than a local physical console (`Logon Type 2`) or network share (`Logon Type 3`).
-* **Source Network Address:** `192.168.10.20` (Kali Linux node).
+Event 4625 means that an account failed to log on.
 
-![Windows Event ID 4625](../assets/windows_event_viewer_security_id_4658.png)
-*Figure 3.4: Windows Security log confirming Event ID 4625 with Logon Type 10 and source IP.*
+I reviewed the event to understand what happened and where the activity came from.
 
----
+The event showed:
 
-### Step 2: SIEM Rule Ingestion & Alert Escalation
-The Wazuh Agent ingested the high volume of Event ID 4625 entries and forwarded them to the Wazuh Manager. The correlation engine aggregated the log stream and triggered a severity escalation based on threshold frequency.
+* **Event ID:** 4625
+* **Logon Type:** 10 — Remote Interactive
+* **Source IP:** `192.168.10.20`
+* **Target Account:** `soc_analyst`
 
-* **Triggered Wazuh Rule:** `Rule 60122` (Multiple Windows Logon Failures - Potential Brute Force Attack).
-* **Alert Severity:** Level 10 (High Priority).
-* **Correlation Field:** Source IP `192.168.10.20` exceeding 8 failed logon events in under 30 seconds.
+The source IP matched my Kali machine, confirming that the failed logins came from the attack simulation.
 
-![Wazuh Alert Brute Force](../assets/wazuh_alert_brute_force_logon_failures.png)
-*Figure 3.5: Wazuh Dashboard displaying correlated brute-force alert aggregated from Event ID 4625 entries.*
+**Windows Event ID 4625**
 
----
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/windows_event_viewer_security_id_4658.png)
 
-## 5. Defense Evasion Simulation: Audit Log Tampering
+### What I Learned
 
-To simulate post-exploitation defense evasion, an intentional attempt to clear the security event log was executed and triaged.
+A single failed login doesn't necessarily mean an attack is happening.
 
-* **MITRE ATT&CK Mapping:** [T1070.001 - Indicator Removal: Clear Windows Event Logs](https://attack.mitre.org/techniques/T1070/001/)
-* **Execution:**
-  ```cmd
-  wevtutil cl Security
-  ```
-* **Detection Rule:** `Wazuh Rule 63103` (Windows audit log was cleared).
-* **Event Artifact:** Windows Security **Event ID 1102** (The audit log was cleared).
+The important part was looking at the **pattern**:
 
-![Wazuh Audit Log Cleared](../assets/wazuh_alert_rule_63103_audit_log_cleared.png)
-*Figure 3.6: Wazuh immediate high-severity detection upon security event log clearing.*
+> Multiple failed remote logins from the same source in a short period of time.
+
+That pattern is much more suspicious than one incorrect password.
 
 ---
 
-## 6. Phase 3 Operational Summary
+# 4. Investigate the Wazuh Alert
 
-| Phase Component | Artifact / Metric | SOC Analyst Interpretation |
-| :--- | :--- | :--- |
-| **Attack Vector** | `hydra rdp://` | Automated dictionary attack targeting Remote Desktop |
-| **Endpoint Telemetry** | `Event ID 4625 / Logon Type 10` | High-frequency remote logon failures from an unauthorized IP |
-| **Correlation Engine** | `Wazuh Rule 60122 (Level 10)` | Aggregated failed logon threshold breached; alerted as True Positive |
-| **Defense Evasion** | `Wazuh Rule 63103 / Event ID 1102` | High-fidelity tamper alert triggered immediately upon log wipe |
+The Windows events were collected by the Wazuh agent and sent to the Wazuh server.
 
-**Key Takeaway:** Raw logs alone do not stop attacks—correlation rules that aggregate high-frequency authentication failures are critical to cutting through operational noise. Monitoring for administrative evasion techniques (like clearing event logs) ensures that even if an adversary gains initial access, their cleanup attempts generate immediate, high-priority alerts.
+Wazuh then generated an alert based on the repeated authentication failures.
+
+The alert I observed was:
+
+* **Rule:** 60122
+* **Severity:** Level 10
+* **Activity:** Multiple Windows logon failures
+* **Source:** `192.168.10.20`
+
+**Wazuh Brute-Force Alert**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_brute_force_logon_failures.png)
+
+This allowed me to follow the activity from the original Windows event to the SIEM alert.
+
+### My Triage
+
+Based on the evidence, I would classify this as a **True Positive security event** within the lab.
+
+**Reasoning:**
+
+* The source IP belonged to my Kali attack machine.
+* The activity targeted Remote Desktop.
+* Multiple authentication failures occurred in a short period.
+* The activity was generated intentionally using Hydra.
+
+---
+
+# 5. Simulate Log Clearing
+
+For the second test, I wanted to see what would happen if someone attempted to remove evidence from the Windows Security log.
+
+I used:
+
+```powershell
+wevtutil cl Security
+```
+
+This generated Windows Security Event ID **1102**, which indicates that the audit log was cleared.
+
+Wazuh detected the activity and generated an alert.
+
+**Wazuh Log Clearing Alert**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_rule_63103_audit_log_cleared.png)
+
+The activity maps to MITRE ATT&CK **T1070.001 — Clear Windows Event Logs**.
+
+### Why This Matters
+
+An attacker may try to remove evidence after gaining access to a system.
+
+This test showed me that the attempt to clear the Windows Security log itself creates a detectable event.
+
+---
+
+# 6. What I Learned From the Investigation
+
+This phase changed how I think about SIEM alerts.
+
+Before this lab, I mostly thought about alerts as something that simply appears in a dashboard.
+
+Now I understand the basic investigation process:
+
+```text
+Attack Activity
+      ↓
+Windows Event
+      ↓
+Wazuh Agent
+      ↓
+Wazuh Manager
+      ↓
+Detection Rule
+      ↓
+Alert
+      ↓
+Analyst Investigation
+```
+
+I also learned that **the alert is only the starting point**.
+
+An analyst still needs to look at things like:
+
+* What happened?
+* Which system was targeted?
+* What account was involved?
+* Where did the activity come from?
+* How many times did it happen?
+* Does the activity make sense in the environment?
+* Is this a true positive or a false positive?
+
+---
+
+# Phase 3 Summary
+
+| Test            | Evidence              | Result              |
+| --------------- | --------------------- | ------------------- |
+| RDP brute force | Windows Event ID 4625 | Detected            |
+| RDP brute force | Wazuh Rule 60122      | High-severity alert |
+| Log clearing    | Windows Event ID 1102 | Detected            |
+| Log clearing    | Wazuh Rule 63103      | Alert generated     |
+
+## Key Takeaway
+
+I used Kali Linux to generate attack activity against a Windows endpoint and followed the resulting evidence from the endpoint logs into Wazuh.
+
+The biggest lesson was that effective alert investigation requires more than recognizing a rule name. I had to connect the **source IP, account, event type, timestamps, and attack behavior** to determine what actually happened.
+
+## Next Steps
+
+The next iteration of this lab will focus on improving the detection itself rather than only testing existing Wazuh rules.
+
+Planned improvements:
+
+* Create a custom Wazuh detection rule.
+* Tune an existing rule to reduce false positives.
+* Add additional attack simulations.
+* Write a standardized SOC incident report for each investigation.
+* Explore using AI to summarize alerts while manually validating its conclusions.
