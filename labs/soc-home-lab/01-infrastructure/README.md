@@ -1,74 +1,128 @@
-# Phase 1: Virtual Infrastructure & Isolated Network Architecture
+# Phase 1: Virtual Infrastructure & Isolated Network
 
-## 1. Architectural Objective & Threat Model
-The primary objective was to deploy a segregated, virtual security operations environment to safely conduct adversarial simulations, observe live telemetry generation, and validate SIEM alert pipelines without risking production networks or public exposure.
+## What I Built
 
-* **Network Containment:** Configured VirtualBox Internal Network (`soc-net`) to eliminate inadvertent outbound traffic or accidental internet routability.
-* **Subnet Architecture:** `192.168.10.0/24` non-routable private address space.
-* **Core Nodes:**
-  * **Adversarial Platform:** Kali Linux (`192.168.10.x`) — Dedicated simulation node for reconnaissance, brute-force, and persistence techniques.
-  * **Monitored Endpoint:** Windows 11 Enterprise (`192.168.10.x`) — Workstation configured for granular process, authentication, and network telemetry capture.
-  * **Detection Engine:** Wazuh SIEM Server (`192.168.10.x`) — Centralized log ingestion, correlation engine, and alert dashboard.
+I built an isolated virtual network in VirtualBox for my home SOC lab. The goal was to safely generate security events, collect logs, and test detection without exposing the lab to my home network or the internet.
 
----
+The lab contains three virtual machines:
 
-## 2. Infrastructure Deployment & Hypervisor Configuration
+* **Kali Linux** — used to simulate attacks and reconnaissance
+* **Windows 11** — monitored endpoint where security events are generated
+* **Ubuntu Server / Wazuh** — collects and analyzes security logs
 
-To ensure strict network segmentation, all virtual interfaces were decoupled from default NAT/Bridged adapters and assigned to an isolated internal switch.
+### Lab Network
 
-![VirtualBox Network Configuration](../assets/virtualbox_vm_settings_internal_network.png)
-*Figure 1.1: VirtualBox hypervisor internal network boundary assignment.*
-
-![VirtualBox VM Inventory](../assets/virtualbox_manager_vm_inventory_summary.png)
-*Figure 1.2: Multi-node lab topology inventory.*
+* **Network:** `soc-net`
+* **Subnet:** `192.168.10.0/24`
+* **Hypervisor:** VirtualBox
 
 ---
 
-## 3. Connectivity Baseline & Network Troubleshooting
+## 1. Build the Virtual Network
 
-### Step 1: Endpoint IP & Subnet Verification
-Verified static/DHCP assignments across both hosts to ensure mutual Layer 3 visibility on `192.168.10.0/24`.
+I configured the three VMs to communicate through a VirtualBox **Internal Network** called `soc-net`.
 
-* **Kali Linux:**
-  ```bash
-  ip a show eth0
-  ```
-  ![Kali IP Verification](../assets/kali_linux_ip_address_verification.png)
+This keeps the lab isolated from my normal network while still allowing the virtual machines to communicate with each other.
 
-* **Windows 11 Endpoint:**
-  ```powershell
-  ipconfig /all
-  ```
-  ![Windows IP Verification](../assets/win11_ipconfig_network_verification.png)
+**VirtualBox Network Configuration**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/virtualbox_vm_settings_internal_network.png)
+
+**VM Inventory**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/virtualbox_manager_vm_inventory_summary.png)
 
 ---
 
-### Step 2: Protocol Reachability & Host Firewall Triage
+## 2. Verify Network Connectivity
 
-* **Initial Observation:** An ICMP ping sweep from Kali to the Windows 11 endpoint dropped 100% of packets despite valid Layer 3 addressing.
+Before moving on to the security monitoring portion of the lab, I needed to make sure the machines could communicate.
 
-![ICMP Drop](../assets/kali_ping_failure_icmp_blocked.png)
-*Figure 1.3: Host unreachable due to default ingress policy.*
+### Check IP Addresses
 
-* **Root Cause Analysis:** Default Windows Defender Firewall rules drop inbound ICMPv4 Echo Requests (`Protocol 1`) across all network profiles to prevent unauthorized network discovery.
-* **Mitigation & Validation:** Rather than disabling host-based defenses entirely, an explicit inbound firewall rule was applied to permit ICMPv4 echo requests strictly from the internal subnet for health-checking and baseline validation.
+On Kali Linux, I used:
+
+```bash
+ip a show eth0
+```
+
+On Windows, I used:
 
 ```powershell
-# Enable ICMPv4 Echo Request on Windows 11
+ipconfig /all
+```
+
+I verified that the systems were receiving addresses on the `192.168.10.0/24` network.
+
+**Kali IP Verification**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_linux_ip_address_verification.png)
+
+**Windows IP Verification**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_ipconfig_network_verification.png)
+
+---
+
+## 3. Troubleshooting: Windows Firewall Blocking Ping
+
+My first connectivity test failed.
+
+Kali could not successfully ping the Windows endpoint, even though both systems were on the same subnet.
+
+**Initial Result**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_ping_failure_icmp_blocked.png)
+
+### What I Found
+
+Windows Defender Firewall was blocking inbound ICMP traffic.
+
+Instead of disabling the firewall, I created an inbound rule to allow ICMPv4 traffic for testing.
+
+```powershell
 netsh advfirewall firewall add rule name="Allow ICMPv4-In" protocol=icmpv4:8,any dir=in action=allow
 ```
 
-![ICMP Success](../assets/kali_ping_success_after_firewall_adjustment.png)
-*Figure 1.4: Verified bidirectional connectivity following least-privilege host firewall rule creation.*
+I then tested connectivity again from Kali.
+
+**Successful Ping**
+
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_ping_success_after_firewall_adjustment.png)
+
+### What I Learned
+
+This was a useful reminder that having two systems on the same subnet does not automatically mean they can communicate.
+
+I had to check:
+
+1. IP addressing
+2. Network configuration
+3. Host firewall rules
+
+This is the same basic troubleshooting process I would use when investigating connectivity problems on a real endpoint.
 
 ---
 
-## 4. Operational Readiness Summary
+## 4. Lab Status
 
-| Node | Hostname / OS | Role | Validation Status |
-| :--- | :--- | :--- | :--- |
-| **Adversary** | Kali Linux | Attack Simulation & Reconnaissance | `[OPERATIONAL]` |
-| **Endpoint** | Windows 11 Pro | Monitored Host (Telemetry Target) | `[OPERATIONAL]` |
-| **SIEM** | Wazuh Manager | Log Collection & Detection Engine | `[OPERATIONAL]` |
+| System         | Role                    | Status      |
+| -------------- | ----------------------- | ----------- |
+| Kali Linux     | Attack simulation       | Operational |
+| Windows 11     | Monitored endpoint      | Operational |
+| Ubuntu / Wazuh | SIEM and log collection | Operational |
 
-**Key Takeaway:** Establishing an isolated internal virtual network prevents unintentional payload spillover, while surgically configuring host-based firewall rules mirrors enterprise defense-in-depth principles without compromising the testing environment.
+At this point, the virtual infrastructure was ready for the next phase: **collecting endpoint telemetry and sending it to Wazuh.**
+
+---
+
+## Key Takeaways
+
+* Built an isolated VirtualBox network for security testing.
+* Configured three virtual machines to communicate on the same subnet.
+* Verified IP addressing and connectivity using Linux and Windows command-line tools.
+* Troubleshot a Windows firewall issue that prevented ICMP connectivity.
+* Created a targeted firewall rule instead of disabling the firewall.
+* Established the foundation for the Wazuh monitoring environment.
+
+**Next Phase:** Configure Windows telemetry and verify that security events are being collected by Wazuh.
