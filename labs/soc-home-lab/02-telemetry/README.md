@@ -133,7 +133,7 @@ I also verified that Sysmon was recording network connections.
 
 The event included information such as:
 
-* Source and destination IP addresses
+* Source and destination IP addresses (not show in screenshot)
 * Destination port
 * Protocol
 * Process responsible for the connection
