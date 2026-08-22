@@ -1,23 +1,25 @@
-# Phase 3: Adversary Simulation & Alert Investigation
+# Phase 3: Adversary Simulation & Detection Validation
 
 ## Objective
 
-In this phase, I used Kali Linux to simulate attacks against my Windows 11 endpoint and then investigated the resulting security events in Wazuh.
+In this phase, I used Kali Linux to generate controlled security activity against the Windows 11 endpoint and validate whether the resulting events were captured and surfaced in Wazuh.
 
 I wanted to answer a simple question:
 
-> **If an attacker tries to break into my Windows machine, what evidence will they leave behind, and will Wazuh detect it?**
+> **If suspicious activity occurs on the Windows endpoint, what evidence does it generate, and does that evidence reach the SIEM?**
 
 I tested two scenarios:
 
-1. RDP brute-force attempts
+1. RDP password-guessing activity
 2. Windows Security event log clearing
+
+The deeper analyst investigation, risk assessment, and recommended response are documented in **Phase 4: SOC Investigation, Triage & Risk Assessment**.
 
 ---
 
 ## 1. Prepare the Windows Endpoint
 
-I first checked whether Remote Desktop was accessible from the Kali Linux machine.
+Before generating RDP authentication activity, I verified whether Remote Desktop was accessible from Kali Linux.
 
 From Kali, I scanned TCP port 3389:
 
@@ -25,15 +27,15 @@ From Kali, I scanned TCP port 3389:
 nmap -p 3389 192.168.10.10
 ```
 
-The first scan showed that port 3389 was not accepting connections.
+The initial scan showed that TCP 3389 was not accepting connections.
 
-**Nmap Scan**
+### Nmap Scan
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_nmap_scan_rdp_port_3389.png)
 
 ### Troubleshooting
 
-I enabled Remote Desktop on the Windows test machine and then verified that TCP 3389 was listening:
+I enabled Remote Desktop on the Windows test endpoint and then verified that TCP 3389 was listening:
 
 ```powershell
 Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
@@ -41,190 +43,220 @@ Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' 
 Get-NetTCPConnection -LocalPort 3389 | Select-Object LocalAddress, LocalPort, State
 ```
 
-**RDP Listening**
+### RDP Listening
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/win11_powershell_verify_rdp_listening.png)
 
-This confirmed that the endpoint was ready for the test.
+This confirmed that the endpoint was ready for the controlled authentication test.
 
 ---
 
-# 2. Simulate an RDP Brute-Force Attack
+## 2. Generate RDP Password-Guessing Activity
 
-I used Hydra from Kali to generate repeated RDP login attempts against the Windows endpoint.
+I used Hydra from Kali Linux to generate repeated RDP authentication attempts against the Windows endpoint.
 
 ```bash
 hydra -l soc_analyst -P /usr/share/wordlists/rockyou.txt rdp://192.168.10.10 -V -t 4
 ```
 
-**Hydra Brute-Force Attempt**
+### Hydra RDP Test
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/kali_hydra_rdp_brute_force_attack.png)
 
-The goal was not to gain access. I wanted to generate the same type of failed authentication activity that a SOC analyst might investigate.
+The purpose was not to gain access.
 
-This activity maps to MITRE ATT&CK: **T1110.001 — Password Guessing**
+The goal was to generate repeated failed authentication activity and determine whether the Windows endpoint and Wazuh monitoring pipeline would capture useful evidence.
 
-### Why This Matters
+### MITRE ATT&CK
 
-**Potential impact if this occurred in a production environment:** Successful compromise of an exposed RDP account could provide an attacker with remote access to an endpoint and potentially lead to data theft, malware deployment, or further movement through the environment.
+**T1110.001 — Password Guessing**
+
+This technique represents repeated attempts to authenticate using potential passwords.
 
 ---
 
-# 3. Investigate the Windows Security Events
+## 3. Validate Windows Authentication Evidence
 
-The failed login attempts generated Windows Security Event ID **4625**.
+The RDP attempts generated Windows Security Event ID **4625 — An account failed to log on**.
 
-Event 4625 means that an account failed to log on.
-
-I reviewed the event to understand what happened and where the activity came from.
-
-The event showed:
+Relevant fields included:
 
 * **Event ID:** 4625
 * **Logon Type:** 10 — Remote Interactive
 * **Source IP:** `192.168.10.20`
 * **Target Account:** `soc_analyst`
+* **Target:** Windows 11 endpoint
 
-The source IP matched my Kali machine, confirming that the failed logins came from the attack simulation.
+The source IP matched the Kali Linux machine used to generate the activity.
 
-**Windows Event ID 4625**
+This allowed me to connect the failed authentication events back to the system that generated them.
 
-[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/windows_event_viewer_security_id_4658.png)
+### Windows Event ID 4625
 
-### What I Learned
+> **Screenshot path needs correction before publishing:** the current repository link references an Event ID 4658 image rather than the Event ID 4625 evidence described here.
 
-A single failed login doesn't necessarily mean an attack is happening.
+### Detection Observation
 
-The important part was looking at the **pattern**:
+One failed authentication by itself would not necessarily indicate malicious activity.
 
-> Multiple failed remote logins from the same source in a short period of time.
+What made this test useful was the repeated pattern:
 
-That pattern is much more suspicious than one incorrect password.
+> **Multiple failed remote authentication attempts from the same source against the same account within a short period.**
+
+That pattern provides much more useful context for detection and investigation than an isolated failed login.
 
 ---
 
-# 4. Investigate the Wazuh Alert
+## 4. Validate Wazuh Ingestion
 
-The Windows events were collected by the Wazuh agent and sent to the Wazuh server.
+The Windows authentication events were collected by the Wazuh agent and forwarded to the Wazuh manager.
 
-Wazuh then generated an alert based on the repeated authentication failures.
+The activity was visible in the Wazuh dashboard as repeated Windows logon-failure events.
 
-The alert I observed was:
-
-* **Rule:** 60122
-* **Severity:** Level 10
-* **Activity:** Multiple Windows logon failures
-* **Source:** `192.168.10.20`
-
-**Wazuh Brute-Force Alert**
+### Wazuh Authentication Events
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_brute_force_logon_failures.png)
 
-This allowed me to follow the activity from the original Windows event to the SIEM alert.
+This validated the telemetry path:
 
-### My Triage
+```text
+Kali RDP Attempts
+        ↓
+Windows Authentication Activity
+        ↓
+Windows Event ID 4625
+        ↓
+Wazuh Agent
+        ↓
+Wazuh Manager
+        ↓
+Wazuh Dashboard
+```
 
-Based on the evidence, I would classify this as a **True Positive security event** within the lab.
+The important result was not simply that an alert appeared.
 
-**Reasoning:**
-
-* The source IP belonged to my Kali attack machine.
-* The activity targeted Remote Desktop.
-* Multiple authentication failures occurred in a short period.
-* The activity was generated intentionally using Hydra.
+I was able to connect the activity generated from Kali to the Windows event data and then verify that the same activity was available for analysis in Wazuh.
 
 ---
 
-# 5. Simulate Log Clearing
+## 5. Simulate Windows Security Log Clearing
 
-For the second test, I wanted to see what would happen if someone attempted to remove evidence from the Windows Security log.
+For the second scenario, I tested whether clearing the Windows Security log would generate detectable evidence.
 
-I used:
+I executed:
 
 ```powershell
 wevtutil cl Security
 ```
 
-This generated Windows Security Event ID **1102**, which indicates that the audit log was cleared.
+Windows generated Event ID **1102 — The audit log was cleared**.
 
-Wazuh detected the activity and generated an alert.
+Wazuh received the event and generated an alert.
 
-**Wazuh Log Clearing Alert**
+### Wazuh Log-Clearing Alert
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_rule_63103_audit_log_cleared.png)
 
-The activity maps to MITRE ATT&CK **T1070.001 — Clear Windows Event Logs**.
+The Wazuh alert included:
 
-### Why This Matters
+* **Wazuh Rule:** 63103
+* **Windows Event:** 1102
+* **Activity:** Security audit log cleared
 
-An attacker may try to remove evidence after gaining access to a system.
+### MITRE ATT&CK
 
-This test showed me that the attempt to clear the Windows Security log itself creates a detectable event.
+**T1070.001 — Clear Windows Event Logs**
+
+This technique is associated with defense evasion because an attacker may attempt to remove evidence of previous activity.
+
+An important observation from the test was:
+
+> **Attempting to remove evidence can itself generate evidence.**
 
 ---
 
-# 6. What I Learned From the Investigation
+## 6. Detection Validation Results
 
-This phase changed how I think about SIEM alerts.
+| Test                  | Endpoint Evidence     | Wazuh Result                             |
+| --------------------- | --------------------- | ---------------------------------------- |
+| RDP password guessing | Windows Event ID 4625 | Authentication failures visible in Wazuh |
+| Security log clearing | Windows Event ID 1102 | Wazuh Rule 63103 generated an alert      |
 
-Before this lab, I mostly thought about alerts as something that simply appears in a dashboard.
+Both scenarios demonstrated that security activity on the Windows endpoint could be captured locally and forwarded into the SIEM for further analysis.
 
-Now I understand the basic investigation process:
+---
+
+## What I Learned
+
+This phase helped me understand the relationship between **activity, telemetry, and detection**.
+
+The basic flow was:
 
 ```text
-Attack Activity
+Generate Activity
       ↓
-Windows Event
+Create Endpoint Evidence
       ↓
-Wazuh Agent
+Collect the Event
       ↓
-Wazuh Manager
+Forward to Wazuh
       ↓
-Detection Rule
-      ↓
-Alert
-      ↓
-Analyst Investigation
+Validate Detection
 ```
 
-I also learned that **the alert is only the starting point**.
+I also learned that seeing an event in a SIEM is not the end of the process.
 
-An analyst still needs to look at things like:
+The next step is determining what the evidence actually means:
 
-* What happened?
-* Which system was targeted?
-* What account was involved?
-* Where did the activity come from?
-* How many times did it happen?
-* Does the activity make sense in the environment?
-* Is this a true positive or a false positive?
+* Is the activity expected?
+* Is it suspicious or malicious?
+* How strong is the evidence?
+* What is the potential impact?
+* What should happen next?
+
+Those questions became the focus of the next phase.
 
 ---
 
-# Phase 3 Summary
+## Phase 3 Summary
 
-| Test            | Evidence              | Result              |
-| --------------- | --------------------- | ------------------- |
-| RDP brute force | Windows Event ID 4625 | Detected            |
-| RDP brute force | Wazuh Rule 60122      | High-severity alert |
-| Log clearing    | Windows Event ID 1102 | Detected            |
-| Log clearing    | Wazuh Rule 63103      | Alert generated     |
+In this phase, I:
+
+* Verified that RDP was available before testing authentication activity
+* Troubleshot the RDP service when TCP 3389 was initially unavailable
+* Generated controlled password-guessing activity from Kali Linux
+* Identified Windows Event ID 4625 authentication failures
+* Verified that the authentication activity reached Wazuh
+* Simulated Windows Security log clearing
+* Identified Windows Event ID 1102
+* Verified Wazuh Rule 63103 for the log-clearing activity
+* Mapped both scenarios to MITRE ATT&CK
+* Validated the path from endpoint activity to SIEM visibility
 
 ## Key Takeaway
 
-I used Kali Linux to generate attack activity against a Windows endpoint and followed the resulting evidence from the endpoint logs into Wazuh.
+I used controlled attack simulations to generate known security activity and then traced the resulting evidence from the Windows endpoint into Wazuh.
 
-The biggest lesson was that effective alert investigation requires more than recognizing a rule name. I had to connect the **source IP, account, event type, timestamps, and attack behavior** to determine what actually happened.
+This phase demonstrated **detection validation**.
 
-## Next Steps
+The next phase focuses on what happens after the detection:
 
-The next iteration of this lab will focus on improving the detection itself rather than only testing existing Wazuh rules.
+> **Investigate the evidence → assess risk → make a triage decision → recommend a response.**
 
-Planned improvements:
+---
 
-* Create a custom Wazuh detection rule.
-* Tune an existing rule to reduce false positives.
-* Add additional attack simulations.
-* Write a standardized SOC incident report for each investigation.
-* Explore using AI to summarize alerts while manually validating its conclusions.
+## Next Phase
+
+**Phase 4: SOC Investigation, Triage & Risk Assessment**
+
+Phase 4 takes the detections generated here and examines them from an analyst perspective, including:
+
+* Investigation workflow
+* Evidence correlation
+* Event timelines
+* True-positive / false-positive analysis
+* Risk assessment
+* Potential business impact
+* MITRE ATT&CK context
+* Recommended response and remediation
+* Detection gaps and limitations
