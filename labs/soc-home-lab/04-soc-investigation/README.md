@@ -65,7 +65,9 @@ Windows recorded the activity as failed authentication events.
 
 The source IP matched the Kali Linux system used for the controlled simulation, allowing me to connect the Windows authentication evidence back to the originating host.
 
-The same authentication failures were also visible in Wazuh, confirming that the endpoint telemetry reached the SIEM.
+The authentication failures were also detected in Wazuh. Individual failures were recorded as **Rule 60122 (Level 5)**, while the repeated failures were correlated into **Rule 60204 (Level 10) — Multiple Windows Logon Failures**.
+
+This provided additional evidence that the activity represented a repeated authentication pattern rather than an isolated failed login.
 
 ---
 
@@ -84,7 +86,9 @@ Wazuh Agent collects the events
     ↓
 Events reach the Wazuh Manager
     ↓
-Authentication failures become visible in Wazuh
+Rule 60122 — Individual Logon Failures
+    ↓
+Rule 60204 — Multiple Windows Logon Failures (Level 10)
     ↓
 Analyst reviews the evidence
 ```
