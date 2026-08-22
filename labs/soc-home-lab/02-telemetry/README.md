@@ -1,6 +1,6 @@
 # Phase 2: Windows Telemetry & Wazuh Log Ingestion
 
-## What I Built
+## Objective
 
 In this phase, I configured the Windows 11 endpoint to generate detailed security telemetry and forward it to Wazuh.
 
