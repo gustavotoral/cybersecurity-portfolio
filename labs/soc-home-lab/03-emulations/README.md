@@ -7,6 +7,14 @@ In this phase, I used Kali Linux to simulate attacks against my Windows 11 endpo
 I wanted to answer a simple question:
 
 > **If an attacker tries to break into my Windows machine, what evidence will they leave behind, and will Wazuh detect it?**
+>
+> | System | Role |
+
+> |---|---|
+> | Kali Linux | Attack simulation |
+> | Windows 11 | Monitored endpoint |
+> | Wazuh | SIEM / detection |
+
 
 I tested two scenarios:
 
