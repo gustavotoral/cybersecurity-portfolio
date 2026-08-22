@@ -21,27 +21,32 @@ Kali Linux
    ↓
 Windows 11 Endpoint
    ↓
-Sysmon → Wazuh Agent → Wazuh Manager
+Windows Events / Sysmon
+   ↓
+Wazuh Agent
+   ↓
+Wazuh Manager
 ```
 
 ### What I did
 
-* Built an isolated VirtualBox network for security testing.
+* Built and troubleshot an isolated VirtualBox network for security testing.
 * Configured Windows 11 as a monitored endpoint.
-* Installed Sysmon to collect detailed Windows telemetry.
+* Installed Sysmon to collect process and network telemetry.
 * Installed and configured the Wazuh agent.
-* Verified that Windows events were reaching the Wazuh SIEM.
-* Generated RDP brute-force activity from Kali Linux.
-* Investigated Windows Event ID 4625 authentication failures.
-* Tested Wazuh's brute-force detection.
-* Simulated Windows Security log clearing and investigated Event ID 1102.
-* Documented troubleshooting, validation, and investigation steps.
+* Verified endpoint telemetry was reaching Wazuh.
+* Generated controlled RDP password-guessing activity from Kali Linux.
+* Traced Windows Event ID 4625 authentication failures into Wazuh.
+* Simulated Windows Security log clearing and validated Event ID 1102 / Wazuh Rule 63103.
+* Validated Sysmon process-creation telemetry, including parent-child process relationships.
+* Practiced SOC-style investigation, risk assessment, and recommended response actions.
+* Identified a network-visibility gap when Nmap reconnaissance did not generate the detection I initially expected.
 
 ### What I learned
 
 This project helped me understand the basic security monitoring workflow:
 
-**Endpoint Activity → Telemetry → SIEM → Alert → Investigation**
+**Endpoint Activity → Telemetry → Detection → Investigation → Risk Assessment → Response**
 
 [**View the full SOC Home Lab →**](https://github.com/gustavotoral/cybersecurity-portfolio/tree/main/labs/soc-home-lab)
 
@@ -94,7 +99,7 @@ Current focus:
 * SOC alert investigation
 * PowerShell and Bash
 * Python and automation
-* AI-assisted IT and security workflows
+* | **AI / Automation** | AI-assisted troubleshooting · scripting support · documentation |
 
 ---
 
