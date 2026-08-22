@@ -49,7 +49,7 @@ This project helped me understand the basic security monitoring workflow:
 
 ## 🔬 Other Projects
 
-### Active Directory & Windows Administration
+### [Active Directory & Windows Administration] (https://github.com/gustavotoral/helpdesk-portfolio/tree/main/active-directory)
 
 Hands-on work with Windows Server, Active Directory, Group Policy, user management, and Windows security auditing.
 
