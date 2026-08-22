@@ -6,7 +6,7 @@ In this phase, I used Kali Linux to generate controlled security activity agains
 
 I wanted to answer a simple question:
 
-> **If suspicious activity occurs on the Windows endpoint, what evidence does it generate, and does that evidence reach the SIEM?**
+> **If suspicious activity occurs on the Windows endpoint, what evidence does it generate, and does Wazuh detect it?**
 
 I tested two scenarios:
 
@@ -65,7 +65,7 @@ hydra -l soc_analyst -P /usr/share/wordlists/rockyou.txt rdp://192.168.10.10 -V 
 
 The purpose was not to gain access.
 
-The goal was to generate repeated failed authentication activity and determine whether the Windows endpoint and Wazuh monitoring pipeline would capture useful evidence.
+The goal was to generate repeated failed authentication activity and determine whether the Windows endpoint and Wazuh monitoring pipeline would capture and detect the activity.
 
 ### MITRE ATT&CK
 
@@ -91,10 +91,6 @@ The source IP matched the Kali Linux machine used to generate the activity.
 
 This allowed me to connect the failed authentication events back to the system that generated them.
 
-### Windows Event ID 4625
-
-> **Screenshot path needs correction before publishing:** the current repository link references an Event ID 4658 image rather than the Event ID 4625 evidence described here.
-
 ### Detection Observation
 
 One failed authentication by itself would not necessarily indicate malicious activity.
@@ -117,7 +113,9 @@ Wazuh recorded the individual authentication failures as **Rule 60122 (Level 5)*
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_brute_force_logon_failures.png)
 
-This validated both event ingestion and Wazuh's ability to correlate the repeated authentication failures into a higher-severity detection.
+This validated both event ingestion and Wazuh's ability to correlate repeated authentication failures into a higher-severity detection.
+
+The telemetry and detection path was:
 
 ```text
 Kali RDP Attempts
@@ -130,12 +128,14 @@ Wazuh Agent
         ↓
 Wazuh Manager
         ↓
-Wazuh Dashboard
+Rule 60122 — Individual Logon Failures
+        ↓
+Rule 60204 — Multiple Windows Logon Failures
 ```
 
-The important result was not simply that an alert appeared.
+The important result was not simply that events appeared in the dashboard.
 
-I was able to connect the activity generated from Kali to the Windows event data and then verify that the same activity was available for analysis in Wazuh.
+I was able to connect the activity generated from Kali to the Windows authentication evidence and then verify that Wazuh correlated the repeated failures into a higher-severity detection.
 
 ---
 
@@ -160,6 +160,7 @@ Wazuh received the event and generated an alert.
 The Wazuh alert included:
 
 * **Wazuh Rule:** 63103
+* **Rule Level:** 5
 * **Windows Event:** 1102
 * **Activity:** Security audit log cleared
 
@@ -177,12 +178,12 @@ An important observation from the test was:
 
 ## 6. Detection Validation Results
 
-| Test | Evidence | Wazuh Result |
+| Test | Endpoint Evidence | Wazuh Result |
 | --- | --- | --- |
 | RDP password guessing | Windows Event ID 4625 | Rule 60122 (Level 5) individual failures; Rule 60204 (Level 10) multiple-logon-failure detection |
 | Security log clearing | Windows Event ID 1102 | Rule 63103 (Level 5) alert generated |
 
-Both scenarios demonstrated that security activity on the Windows endpoint could be captured locally and forwarded into the SIEM for further analysis.
+Both scenarios demonstrated that security activity on the Windows endpoint could be captured locally, forwarded into the SIEM, and surfaced for further analysis.
 
 ---
 
@@ -201,10 +202,14 @@ Collect the Event
       ↓
 Forward to Wazuh
       ↓
+Apply Detection Logic
+      ↓
 Validate Detection
 ```
 
-I also learned that seeing an event in a SIEM is not the end of the process.
+The RDP test also demonstrated the difference between an individual security event and a correlated detection. Wazuh surfaced individual authentication failures at Level 5 and correlated the repeated failures into a Level 10 alert.
+
+I also learned that seeing an alert in a SIEM is not the end of the process.
 
 The next step is determining what the evidence actually means:
 
@@ -226,16 +231,19 @@ In this phase, I:
 * Troubleshot the RDP service when TCP 3389 was initially unavailable
 * Generated controlled password-guessing activity from Kali Linux
 * Identified Windows Event ID 4625 authentication failures
-* Verified that the authentication activity reached Wazuh
+* Verified Wazuh Rule 60122 for individual authentication failures
+* Verified Wazuh Rule 60204 as a Level 10 multiple-logon-failure detection
 * Simulated Windows Security log clearing
 * Identified Windows Event ID 1102
 * Verified Wazuh Rule 63103 for the log-clearing activity
 * Mapped both scenarios to MITRE ATT&CK
-* Validated the path from endpoint activity to SIEM visibility
+* Validated the path from endpoint activity to SIEM detection
 
 ## Key Takeaway
 
-I used controlled attack simulations to generate known security activity and then traced the resulting evidence from the Windows endpoint into Wazuh.
+I used controlled attack simulations to generate known security activity and traced the resulting evidence from the Windows endpoint into Wazuh.
+
+The RDP test demonstrated how multiple individual authentication failures can be correlated into a higher-severity detection, while the log-clearing test demonstrated that an attempt to remove security evidence can itself generate an alert.
 
 This phase demonstrated **detection validation**.
 
