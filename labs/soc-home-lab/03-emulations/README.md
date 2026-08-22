@@ -143,7 +143,7 @@ I was able to connect the activity generated from Kali to the Windows authentica
 
 For the second scenario, I tested whether clearing the Windows Security log would generate detectable evidence.
 
-I executed:
+I executed the following command from an **elevated Administrator prompt (clearing the Security log requires administrative privileges):**
 
 ```powershell
 wevtutil cl Security
