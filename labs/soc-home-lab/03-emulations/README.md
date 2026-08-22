@@ -63,6 +63,12 @@ hydra -l soc_analyst -P /usr/share/wordlists/rockyou.txt rdp://192.168.10.10 -V 
 
 The goal was not to gain access. I wanted to generate the same type of failed authentication activity that a SOC analyst might investigate.
 
+This activity maps to MITRE ATT&CK: **T1110.001 — Password Guessing**
+
+### Why This Matters
+
+An attacker repeatedly attempts passwords against an account.
+
 ---
 
 # 3. Investigate the Windows Security Events
