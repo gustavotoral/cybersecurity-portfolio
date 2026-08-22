@@ -168,7 +168,7 @@ This phase helped me understand the basic flow of endpoint telemetry.
 
 Before building this lab, I mostly thought of a SIEM as a place where alerts appear. This helped me understand what happens before the alert exists:
 
-**User/Process Activity → Windows Event → Sysmon → Wazuh Agent → Wazuh Manager → Analyst**
+**User/Process Activity → Windows/Sysmon Event → Wazuh Agent → Wazuh Manager → Analyst**
 
 I also learned that troubleshooting telemetry requires checking each part of the pipeline instead of assuming the SIEM is the problem.
 
