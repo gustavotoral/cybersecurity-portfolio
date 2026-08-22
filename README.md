@@ -100,11 +100,9 @@ Current focus:
 
 ## 👤 About Me
 
-I'm transitioning from a sales management background into technology.
+I'm transitioning from a sales management and client-facing background into technology.
 
-My previous work gave me experience working with customers, troubleshooting problems, learning new tools, managing workflows, and communicating clearly. I'm now applying those skills to IT and cybersecurity through certifications and hands-on labs.
-
-I don't want this portfolio to just show that I can follow a tutorial. I want it to show **how I approach a problem, troubleshoot it, and explain what I learned.**
+My previous work gave me experience working with customers, assessing needs, troubleshooting problems, learning new tools, managing workflows, and communicating clearly. I'm now applying those skills to IT and cybersecurity through certifications and hands-on labs.
 
 ---
 
