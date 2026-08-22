@@ -107,17 +107,17 @@ That pattern provides much more useful context for detection and investigation t
 
 ---
 
-## 4. Validate Wazuh Ingestion
+## 4. Validate Wazuh Detection
 
 The Windows authentication events were collected by the Wazuh agent and forwarded to the Wazuh manager.
 
-The activity was visible in the Wazuh dashboard as repeated Windows logon-failure events.
+Wazuh recorded the individual authentication failures as **Rule 60122 (Level 5)** and correlated the repeated failures into **Rule 60204 (Level 10) — Multiple Windows Logon Failures**.
 
 ### Wazuh Authentication Events
 
 [View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/wazuh_alert_brute_force_logon_failures.png)
 
-This validated the telemetry path:
+This validated both event ingestion and Wazuh's ability to correlate the repeated authentication failures into a higher-severity detection.
 
 ```text
 Kali RDP Attempts
