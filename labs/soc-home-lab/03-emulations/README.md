@@ -177,10 +177,10 @@ An important observation from the test was:
 
 ## 6. Detection Validation Results
 
-| Test                  | Endpoint Evidence     | Wazuh Result                             |
-| --------------------- | --------------------- | ---------------------------------------- |
-| RDP password guessing | Windows Event ID 4625 | Authentication failures visible in Wazuh |
-| Security log clearing | Windows Event ID 1102 | Wazuh Rule 63103 generated an alert      |
+| Test | Evidence | Wazuh Result |
+| --- | --- | --- |
+| RDP password guessing | Windows Event ID 4625 | Rule 60122 (Level 5) individual failures; Rule 60204 (Level 10) multiple-logon-failure detection |
+| Security log clearing | Windows Event ID 1102 | Rule 63103 (Level 5) alert generated |
 
 Both scenarios demonstrated that security activity on the Windows endpoint could be captured locally and forwarded into the SIEM for further analysis.
 
