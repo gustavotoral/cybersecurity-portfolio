@@ -54,6 +54,12 @@ Get-Service -Name "Sysmon64"
 
 I wanted to confirm that Windows was actually generating Sysmon events before trying to send them to Wazuh.
 
+**Sysmon Event ID 1 — Process Creation**
+
+[View Screenshot](../../assets/sysmon_event_1_ping_process_details.png)
+
+The event confirmed that Sysmon was recording process creation locally, including the executable, command line, and user context.
+
 ---
 
 ## 2. Install and Configure the Wazuh Agent
