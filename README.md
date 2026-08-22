@@ -99,7 +99,6 @@ Current focus:
 * SOC alert investigation
 * PowerShell and Bash
 * Python and automation
-* | **AI / Automation** | AI-assisted troubleshooting · scripting support · documentation |
 
 ---
 
