@@ -56,7 +56,7 @@ I wanted to confirm that Windows was actually generating Sysmon events before tr
 
 **Sysmon Event ID 1 — Process Creation**
 
-[View Screenshot]((https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/)sysmon_event_1_ping_process_details.png)
+[View Screenshot](https://github.com/gustavotoral/cybersecurity-portfolio/blob/main/labs/soc-home-lab/assets/sysmon_event_1_ping_process_details.png)
 
 The event confirmed that Sysmon was recording process creation locally, including the executable, command line, and user context.
 
