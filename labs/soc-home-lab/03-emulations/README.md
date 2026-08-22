@@ -1,6 +1,6 @@
 # Phase 3: Adversary Simulation & Alert Investigation
 
-## What I Built
+## Objective
 
 In this phase, I used Kali Linux to simulate attacks against my Windows 11 endpoint and then investigated the resulting security events in Wazuh.
 
@@ -67,7 +67,7 @@ This activity maps to MITRE ATT&CK: **T1110.001 — Password Guessing**
 
 ### Why This Matters
 
-An attacker repeatedly attempts passwords against an account.
+**Potential impact if this occurred in a production environment:** Successful compromise of an exposed RDP account could provide an attacker with remote access to an endpoint and potentially lead to data theft, malware deployment, or further movement through the environment.
 
 ---
 
