@@ -1,6 +1,6 @@
 # Phase 1: Virtual Infrastructure & Isolated Network
 
-## What I Built
+## Objective
 
 I built an isolated virtual network in VirtualBox for my home SOC lab. The goal was to safely generate security events, collect logs, and test detection without exposing the lab to my home network or the internet.
 
